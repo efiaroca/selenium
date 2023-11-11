@@ -77,7 +77,7 @@ extension_type = driver.find_element_by_xpath(
 driver.execute_script("arguments[0].click();", extension_type)
 
 # Select workflow
-al.logging.info("Selecting workflow")
+al.logging.info("Selecting workflow dropdown")
 
 WebDriverWait(driver, 10).until(
     EC.visibility_of_element_located((By.ID, "migratedWorkflow"))
@@ -85,3 +85,21 @@ WebDriverWait(driver, 10).until(
 workflow_dropdown = driver.find_element_by_id("migratedWorkflow")
 
 workflow_dropdown.click()
+
+# Select the workflow
+al.logging.info("Searching for workflow")
+WebDriverWait(driver, 10).until(
+    EC.visibility_of_element_located((By.CLASS_NAME, "css-4mp3pp-menu"))
+)
+
+workflow_dropdown_search = driver.find_element_by_class_name("css-4mp3pp-menu")
+workflow_dropdown_search_html = workflow_dropdown_search.get_attribute("outerHTML")
+
+WebDriverWait(driver, 10).until(
+    EC.visibility_of_element_located((By.XPATH, "//*[text()='FR_IV_Commande']"))
+)
+
+worklfow_name = driver.find_element_by_xpath("//*[text()='FR_IV_Commande']")
+
+worklfow_name.click()
+al.logging.info("Workflow dropdown html: " + workflow_dropdown_search_html)
