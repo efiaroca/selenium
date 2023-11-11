@@ -77,7 +77,11 @@ extension_type = driver.find_element_by_xpath(
 driver.execute_script("arguments[0].click();", extension_type)
 
 # Select workflow
+
 al.logging.info("Selecting workflow dropdown")
+
+al.logging.info("Selecting workflow")
+
 
 WebDriverWait(driver, 10).until(
     EC.visibility_of_element_located((By.ID, "migratedWorkflow"))
@@ -85,6 +89,7 @@ WebDriverWait(driver, 10).until(
 workflow_dropdown = driver.find_element_by_id("migratedWorkflow")
 
 workflow_dropdown.click()
+
 
 # Select the workflow
 al.logging.info("Searching for workflow")
