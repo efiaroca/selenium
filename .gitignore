@@ -1,0 +1,10 @@
+*.log
+.env
+config.py
+*.csv
+logs/
+imports/
+exports/
+__pycache__/*
+*.pyc
+*.pyo```
