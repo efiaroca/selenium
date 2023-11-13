@@ -188,17 +188,25 @@ if expand_post_functions.is_displayed():
             "//span[text()='<%=issue.get(\"summary\")%>']"
         )
         reporter_field = driver.find_element_by_xpath(
-            "//span[text()='issue.get(\"assignee\")']"
+            "//span[@role='presentation' and @style='padding-right: 0.1px;' and text()='issue.get(\"assignee\")']"
         )
         time.sleep(1)
 
-        ActionChains(driver).double_click(summary_field).send_keys_to_element(
-            summary_field, nunjuck_summary
-        ).perform()
+        try:
+            ActionChains(driver).double_click(summary_field).send_keys_to_element(
+                summary_field, nunjuck_summary
+            ).perform()
+        except:
+            al.logging.info("Summary field not found")
 
-        ActionChains(driver).double_click(summary_field).send_keys_to_element(
-            reporter_field, nunjuck_asignee
-        ).perform()
+        time.sleep(2)
+
+        try:
+            ActionChains(driver).double_click(summary_field).send_keys_to_element(
+                reporter_field, nunjuck_asignee
+            ).perform()
+        except:
+            al.logging.info("Reporter field not found")
 
         time.sleep(2)
 
