@@ -38,6 +38,7 @@ i_frame_post_migration = os.getenv("I_FRAME_POST_MIGRATION")
 workflow = os.getenv("WORKFLOW")
 nunjuck_summary = os.getenv("NUNJUCK_SUMMARY")
 nunjuck_asignee = os.getenv("NUNJUCK_ASIGNEE")
+nunjuck_comments = os.getenv("NUNJUCK_COMMENTS")
 
 # driver = webdriver.Chrome(options=options)
 
@@ -188,7 +189,10 @@ if expand_post_functions.is_displayed():
             "//span[text()='<%=issue.get(\"summary\")%>']"
         )
         reporter_field = driver.find_element_by_xpath(
-            "//span[@role='presentation' and @style='padding-right: 0.1px;' and text()='issue.get(\"assignee\")']"
+            "//span[text()='issue.get(\"assignee\")']"
+        )
+        transition_comment_field = driver.find_element_by_xpath(
+            "//span[text()='${transientVars.comment}']"
         )
         time.sleep(1)
 
@@ -202,11 +206,18 @@ if expand_post_functions.is_displayed():
         time.sleep(2)
 
         try:
-            ActionChains(driver).double_click(summary_field).send_keys_to_element(
+            ActionChains(driver).double_click(reporter_field).send_keys_to_element(
                 reporter_field, nunjuck_asignee
             ).perform()
         except:
             al.logging.info("Reporter field not found")
+
+        try:
+            ActionChains(driver).double_click(
+                transition_comment_field
+            ).send_keys_to_element(transition_comment_field, nunjuck_comments).perform()
+        except:
+            al.logging.info("Transition comment field not found")
 
         time.sleep(2)
 
