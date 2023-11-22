@@ -39,6 +39,7 @@ workflow = os.getenv("WORKFLOW")
 nunjuck_summary = os.getenv("NUNJUCK_SUMMARY")
 nunjuck_asignee = os.getenv("NUNJUCK_ASIGNEE")
 nunjuck_comments = os.getenv("NUNJUCK_COMMENTS")
+field_to_add = os.getenv("FIELD_TO_ADD")
 
 # driver = webdriver.Chrome(options=options)
 
@@ -155,9 +156,10 @@ if expand_post_functions.is_displayed():
     al.logging.info(f"Found {len(rows_to_process)} post functions")
     row_index = 0
 
-    for row in rows_to_process:
-        al.logging.info(f"Processing row{row}")
+    for row_index in range(len(rows_to_process)):
+        al.logging.info(f"Processing row{row_index}")
 
+        row = rows_to_process[row_index]
         row.click()
         al.logging.info("Row clicked")
         time.sleep(1)
@@ -190,45 +192,106 @@ if expand_post_functions.is_displayed():
         al.logging.info("Getting issue summary")
 
         time.sleep(1)
-        summary_field = driver.find_element_by_xpath(
-            "//span[text()='<%=issue.get(\"summary\")%>']"
-        )
-        reporter_field = driver.find_element_by_xpath(
-            "//span[text()='issue.get(\"assignee\")']"
-        )
-        transition_comment_field = driver.find_element_by_xpath(
-            "//span[text()='${transientVars.comment}']"
-        )
-        time.sleep(1)
+        add_field = summary_field = reporter_field = transition_comment_field = None
 
         try:
-            ActionChains(driver).double_click(summary_field).send_keys_to_element(
-                summary_field, nunjuck_summary
-            ).perform()
+            summary_field = driver.find_element_by_xpath(
+                "//span[text()='<%=issue.get(\"summary\")%>']"
+            )
+            al.logging.info("Summary field found")
         except:
             al.logging.info("Summary field not found")
 
-        time.sleep(2)
-
         try:
-            ActionChains(driver).double_click(reporter_field).send_keys_to_element(
-                reporter_field, nunjuck_asignee
-            ).perform()
+            reporter_field = driver.find_element_by_xpath(
+                "//span[text()='issue.get(\"assignee\")']"
+            )
+            al.logging.info("Reporter field found")
         except:
             al.logging.info("Reporter field not found")
 
         try:
-            ActionChains(driver).double_click(
-                transition_comment_field
-            ).send_keys_to_element(transition_comment_field, nunjuck_comments).perform()
+            transition_comment_field = driver.find_element_by_xpath(
+                "//span[text()='${transientVars.comment}']"
+            )
+            al.logging.info("Transition comment field found")
         except:
             al.logging.info("Transition comment field not found")
 
+        try:
+            add_field = driver.find_element_by_xpath("//*[@id='s2id_fields']")
+            al.logging.info("Add field found")
+        except:
+            al.logging.info("Add field not found")
+
+        time.sleep(1)
+
+        if summary_field is not None:
+            try:
+                ActionChains(driver).double_click(summary_field).send_keys_to_element(
+                    summary_field, nunjuck_summary
+                ).perform()
+            except:
+                al.logging.info("Error performing action on summary field")
+
         time.sleep(2)
 
-        save_button = driver.find_element_by_xpath(
-            "//button[normalize-space(text())='Save']"
+        if reporter_field is not None:
+            try:
+                ActionChains(driver).double_click(reporter_field).send_keys_to_element(
+                    reporter_field, nunjuck_asignee
+                ).perform()
+            except:
+                al.logging.info("Error performing action on reporter field")
+
+        if transition_comment_field is not None:
+            try:
+                ActionChains(driver).double_click(
+                    transition_comment_field
+                ).send_keys_to_element(
+                    transition_comment_field, nunjuck_comments
+                ).perform()
+            except:
+                al.logging.info("Error performing action on transition comment field")
+
+        if add_field is not None:
+            try:
+                ActionChains(driver).click(add_field).send_keys_to_element(
+                    add_field, field_to_add
+                ).send_keys(Keys.ENTER).perform()
+            except:
+                al.logging.info("Error performing action on add company name field")
+
+            try:
+                add_button = driver.find_element_by_xpath(f"//*[text()='Add']")
+                al.logging.info("Add button found")
+                # send enter key
+                add_button.click()
+            except:
+                al.logging.info("Add button not found")
+
+        time.sleep(2)
+
+        try:
+            save_button = driver.find_element_by_xpath(
+                "//button[normalize-space(text())='Save']"
+            )
+            al.logging.info("Save button found")
+            save_button.click()
+            al.logging.info("Save button clicked")
+        except:
+            al.logging.info("Save button not found")
+
+            al.logging.info("Waiting for post functions to load")
+        WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(
+                (
+                    By.XPATH,
+                    "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']",
+                )
+            )
         )
-        save_button.click()
+        al.logging.info("Post functions loaded")
 
         time.sleep(1)
