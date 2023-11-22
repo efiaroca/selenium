@@ -68,13 +68,12 @@ login_button = driver.find_element_by_id("login-submit")
 login_button.click()
 
 # wait for the page to load and move on to next url
-WebDriverWait(driver, 15).until(EC.url_to_be(cloud_url + "/jira/your-work"))
-
+if cloud_url is not None:
+    WebDriverWait(driver, 15).until(EC.url_to_be(cloud_url + "/jira/your-work"))
 
 al.logging.info("Navigating to the workflow page")
 # Navigate to the workflow page
 driver.get(post_migration_url)
-
 
 # Switch to iframe for app
 al.logging.info("Switching to the iframe")
@@ -192,7 +191,9 @@ if expand_post_functions.is_displayed():
         al.logging.info("Getting issue summary")
 
         time.sleep(1)
-        add_field = summary_field = reporter_field = transition_comment_field = None
+        empty_field = (
+            add_field
+        ) = summary_field = reporter_field = transition_comment_field = None
 
         try:
             summary_field = driver.find_element_by_xpath(
@@ -223,6 +224,12 @@ if expand_post_functions.is_displayed():
             al.logging.info("Add field found")
         except:
             al.logging.info("Add field not found")
+
+        try:
+            empty_field = driver.find_element_by_xpath("//label[span[text()=':']]")
+            al.logging.info("Empty field-reference found")
+        except:
+            al.logging.info("Empty field-reference not found")
 
         time.sleep(1)
 
@@ -269,6 +276,15 @@ if expand_post_functions.is_displayed():
                 add_button.click()
             except:
                 al.logging.info("Add button not found")
+
+        if empty_field is not None:
+            al.logging.info("Empty field found")
+
+            try:
+                empty_field.click()
+                al.logging.info("Empty field clicked")
+            except:
+                al.logging.info("Empty field not clicked")
 
         time.sleep(2)
 
