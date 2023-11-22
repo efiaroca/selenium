@@ -43,116 +43,125 @@ field_to_add = os.getenv("FIELD_TO_ADD")
 
 # driver = webdriver.Chrome(options=options)
 
-# Navigate to the webpage
-driver.get(cloud_url)
-title = driver.title
-options = Options()
-options.add_argument("--auto-open-devtools-for-tabs")
-# Start the logger
-al.logging.info("Starting the logger")
 
-# Log in
-al.logging.info("Logging in")
+def navigate_to_page():
+    # Navigate to the webpage
+    driver.get(cloud_url)
+    title = driver.title
+    options = Options()
+    options.add_argument("--auto-open-devtools-for-tabs")
+    # Start the logger
+    al.logging.info("Starting the logger")
 
-WebDriverWait(driver, 15).until(EC.visibility_of_element_located((By.ID, "username")))
+    # Log in
+    al.logging.info("Logging in")
 
-driver.find_element_by_id("username").send_keys(user_email)
-
-continue_button = driver.find_element_by_id("login-submit")
-continue_button.click()
-
-WebDriverWait(driver, 15).until(EC.visibility_of_element_located((By.ID, "password")))
-driver.find_element_by_id("password").send_keys(user_password)
-
-login_button = driver.find_element_by_id("login-submit")
-login_button.click()
-
-# wait for the page to load and move on to next url
-if cloud_url is not None:
-    WebDriverWait(driver, 15).until(EC.url_to_be(cloud_url + "/jira/your-work"))
-
-al.logging.info("Navigating to the workflow page")
-# Navigate to the workflow page
-driver.get(post_migration_url)
-
-# Switch to iframe for app
-al.logging.info("Switching to the iframe")
-
-WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
-
-
-al.logging.info("Working in iframe")
-
-# driver.switch_to.frame(driver.find_element_by_xpath(i_frame_post_migration))
-WebDriverWait(driver, 10).until(
-    EC.visibility_of_element_located(
-        (By.XPATH, '//span[@class="css-178ag6o" and text()="Extension type"]')
+    WebDriverWait(driver, 15).until(
+        EC.visibility_of_element_located((By.ID, "username"))
     )
-)
-# Find the button
-extension_type = driver.find_element_by_xpath(
-    '//span[@class="css-178ag6o" and text()="Extension type"]'
-)
 
-# Use JavaScript to click the button
-driver.execute_script("arguments[0].click();", extension_type)
+    driver.find_element_by_id("username").send_keys(user_email)
 
-# Select workflow
+    continue_button = driver.find_element_by_id("login-submit")
+    continue_button.click()
 
-al.logging.info("Selecting workflow dropdown")
-
-al.logging.info("Selecting workflow")
-
-
-WebDriverWait(driver, 10).until(
-    EC.visibility_of_element_located((By.ID, "migratedWorkflow"))
-)
-workflow_dropdown = driver.find_element_by_id("migratedWorkflow")
-
-workflow_dropdown.click()
-
-
-# Select the workflow
-al.logging.info("Searching for workflow")
-WebDriverWait(driver, 10).until(
-    EC.visibility_of_element_located((By.CLASS_NAME, "css-4mp3pp-menu"))
-)
-
-workflow_dropdown_search = driver.find_element_by_class_name("css-4mp3pp-menu")
-workflow_dropdown_search_html = workflow_dropdown_search.get_attribute("outerHTML")
-
-WebDriverWait(driver, 10).until(
-    EC.visibility_of_element_located((By.XPATH, f"//*[text()='{workflow}']"))
-)
-
-worklfow_name = driver.find_element_by_xpath(f"//*[text()='{workflow}']")
-
-worklfow_name.click()
-
-al.logging.info("Workflow selected")
-
-# Open post functions or conditions
-
-al.logging.info("Opening post functions or conditions")
-
-expand_post_functions = driver.find_element_by_xpath(
-    "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
-)
-expand_conditions = driver.find_element_by_xpath(
-    "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
-)
-
-
-if expand_post_functions.is_displayed():
-    expand_post_functions.click()
-    al.logging.info("Post functions expanded")
-    row_group = driver.find_element_by_xpath(
-        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']"
+    WebDriverWait(driver, 15).until(
+        EC.visibility_of_element_located((By.ID, "password"))
     )
-    al.logging.info("Counting post functions")
-    rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
+    driver.find_element_by_id("password").send_keys(user_password)
 
-    al.logging.info(f"Found {len(rows_to_process)} post functions")
+    login_button = driver.find_element_by_id("login-submit")
+    login_button.click()
+
+    # wait for the page to load and move on to next url
+    if cloud_url is not None:
+        WebDriverWait(driver, 15).until(EC.url_to_be(cloud_url + "/jira/your-work"))
+
+    al.logging.info("Navigating to the workflow page")
+    # Navigate to the workflow page
+    driver.get(post_migration_url)
+
+    # Switch to iframe for app
+    al.logging.info("Switching to the iframe")
+
+    WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
+
+    al.logging.info("Working in iframe")
+
+    # driver.switch_to.frame(driver.find_element_by_xpath(i_frame_post_migration))
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located(
+            (By.XPATH, '//span[@class="css-178ag6o" and text()="Extension type"]')
+        )
+    )
+    # Find the button
+    extension_type = driver.find_element_by_xpath(
+        '//span[@class="css-178ag6o" and text()="Extension type"]'
+    )
+
+    # Use JavaScript to click the button
+    driver.execute_script("arguments[0].click();", extension_type)
+
+
+def select_workflow():
+    # Select workflow
+
+    al.logging.info("Selecting workflow dropdown")
+
+    al.logging.info("Selecting workflow")
+
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.ID, "migratedWorkflow"))
+    )
+    workflow_dropdown = driver.find_element_by_id("migratedWorkflow")
+
+    workflow_dropdown.click()
+
+    # Select the workflow
+    al.logging.info("Searching for workflow")
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.CLASS_NAME, "css-4mp3pp-menu"))
+    )
+
+    workflow_dropdown_search = driver.find_element_by_class_name("css-4mp3pp-menu")
+    workflow_dropdown_search_html = workflow_dropdown_search.get_attribute("outerHTML")
+
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located((By.XPATH, f"//*[text()='{workflow}']"))
+    )
+
+    worklfow_name = driver.find_element_by_xpath(f"//*[text()='{workflow}']")
+
+    worklfow_name.click()
+
+    al.logging.info("Workflow selected")
+
+
+def expand_fucntions_and_conditions():
+    # Open post functions or conditions
+
+    al.logging.info("Opening post functions or conditions")
+
+    expand_post_functions = driver.find_element_by_xpath(
+        "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
+    )
+    expand_conditions = driver.find_element_by_xpath(
+        "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
+    )
+
+    if expand_post_functions.is_displayed():
+        expand_post_functions.click()
+        al.logging.info("Post functions expanded")
+        row_group = driver.find_element_by_xpath(
+            "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']"
+        )
+        al.logging.info("Counting post functions")
+        rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
+
+        al.logging.info(f"Found {len(rows_to_process)} post functions")
+
+
+def process_post_functions_andconditions(rows_to_process):
     row_index = 0
 
     for row_index in range(len(rows_to_process)):
@@ -299,7 +308,7 @@ if expand_post_functions.is_displayed():
             al.logging.info("Save button not found")
 
             al.logging.info("Waiting for post functions to load")
-        WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
+
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located(
                 (
@@ -311,3 +320,12 @@ if expand_post_functions.is_displayed():
         al.logging.info("Post functions loaded")
 
         time.sleep(1)
+
+
+def main():
+    pass
+
+
+if __name__ == "__main__":
+    main()
+    pass
