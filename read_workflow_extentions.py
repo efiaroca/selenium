@@ -151,6 +151,8 @@ def expand_fucntions_and_conditions():
         "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
     )
 
+    rows_to_process = []  # Initialize rows_to_process as an empty list
+
     if expand_post_functions.is_displayed():
         expand_post_functions.click()
         al.logging.info("Post functions expanded")
@@ -162,14 +164,13 @@ def expand_fucntions_and_conditions():
 
         al.logging.info(f"Found {len(rows_to_process)} post functions")
 
+    return rows_to_process
+
 
 def process_post_functions_andconditions(rows_to_process):
-    row_index = 0
+    for row in rows_to_process:
+        al.logging.info(f"Processing row{row.text.splitlines()[0]}")
 
-    for row_index in range(len(rows_to_process)):
-        al.logging.info(f"Processing row{row_index}")
-
-        row = rows_to_process[row_index]
         row.click()
         al.logging.info("Row clicked")
         time.sleep(1)
@@ -196,7 +197,6 @@ def process_post_functions_andconditions(rows_to_process):
             EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
         )
 
-        row_index += 1
         al.logging.info("Config loaded")
 
         al.logging.info("Getting issue summary")
@@ -334,10 +334,12 @@ def process_post_functions_andconditions(rows_to_process):
 def main():
     navigate_to_page()
     select_workflow()
-    expand_fucntions_and_conditions()
+    rows_to_process = expand_fucntions_and_conditions()
+    """
     rows_to_process = driver.find_elements_by_xpath(
         "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']//div[@role='row']"
     )
+    """
     process_post_functions_andconditions(rows_to_process)
 
 
