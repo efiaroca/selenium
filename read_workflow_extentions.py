@@ -41,7 +41,11 @@ workflow = os.getenv("WORKFLOW")
 nunjuck_summary = os.getenv("NUNJUCK_SUMMARY")
 nunjuck_asignee = os.getenv("NUNJUCK_ASIGNEE")
 nunjuck_comments = os.getenv("NUNJUCK_COMMENTS")
-field_to_add = os.getenv("FIELD_TO_ADD")
+nunjuck_access_control = os.getenv("NUNJUCK_ACCESS_CONTROL")
+add_company_name = os.getenv("ADD_COMPANY_NAME")
+add_software_package = os.getenv("ADD_SOFTWARE_PACKAGE")
+add_software_package_version = os.getenv("ADD_SOFTWARE_PACKAGE_VERSION")
+
 
 # driver = webdriver.Chrome(options=options)
 
@@ -175,6 +179,7 @@ def process_post_functions_andconditions(rows_to_process):
                 (By.XPATH, ".//button/span[normalize-space(text())='Edit']")
             )
         )
+
         edit_buttons = driver.find_elements_by_xpath(
             ".//button/span[normalize-space(text())='Edit']"
         )
@@ -193,9 +198,15 @@ def process_post_functions_andconditions(rows_to_process):
                 (By.XPATH, "//div[@class='aui-dialog2-content']")
             )
         )
+
         WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(1))
 
-        WebDriverWait(driver, 20).until(
+        post_function_id = driver.find_element_by_xpath(
+            "//p[contains(text(), 'Post-function ID:')]"
+        )
+        al.logging.info(f"Post function ID: {post_function_id.text}")
+
+        WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
         )
 
@@ -204,7 +215,13 @@ def process_post_functions_andconditions(rows_to_process):
         al.logging.info("Getting issue summary")
 
         time.sleep(1)
-        company_name = (
+        label_software_package = (
+            software_package
+        ) = (
+            access_control_update
+        ) = (
+            company_name
+        ) = (
             empty_field
         ) = add_field = summary_field = reporter_field = transition_comment_field = None
 
@@ -252,6 +269,45 @@ def process_post_functions_andconditions(rows_to_process):
         except:
             al.logging.info("Company name field not found")
 
+        try:
+            access_control_update = driver.find_element_by_xpath(
+                "//label[span[text()='Access control update:']]"
+            )
+            al.logging.info("Access Control Update found")
+        except:
+            al.logging.info("Access Control Update not found")
+
+        try:
+            label_software_package = driver.find_element_by_xpath(
+                "//label[span[text()='Software package:']]"
+            )
+            al.logging.info("Software Package found")
+        except:
+            al.logging.info("Software Package not found")
+
+        try:
+            software_package = driver.find_element_by_xpath(
+                "//span[@class='css-u1shhv']/i[text()='customfield_17588']"
+            )
+            al.logging.info("Software Package custom field missing")
+        except:
+            al.logging.info("Software Package not found")
+
+        try:
+            software_package_version = driver.find_element_by_xpath(
+                "//span[@class='css-u1shhv']/i[text()='customfield_17643']"
+            )
+            al.logging.info("Software Package Version custom field missing")
+        except:
+            al.logging.info("Software Package Version not found")
+
+        try:
+            label_software_package_version = driver.find_element_by_xpath(
+                "//label[span[text()='Software package version(s):']]"
+            )
+        except:
+            al.logging.info("Software Package Version not found")
+
         time.sleep(1)
 
         if summary_field is not None:
@@ -282,10 +338,20 @@ def process_post_functions_andconditions(rows_to_process):
             except:
                 al.logging.info("Error performing action on transition comment field")
 
+        if access_control_update is not None:
+            try:
+                ActionChains(driver).double_click(
+                    access_control_update
+                ).send_keys_to_element(
+                    access_control_update, nunjuck_access_control
+                ).perform()
+            except:
+                al.logging.info("Error performing action on access control update")
+
         if company_name is None:
             try:
                 ActionChains(driver).click(add_field).send_keys_to_element(
-                    add_field, field_to_add
+                    add_field, add_company_name
                 ).send_keys(Keys.ENTER).perform()
                 al.logging.info("Add field clicked")
 
@@ -297,6 +363,22 @@ def process_post_functions_andconditions(rows_to_process):
 
             except:
                 al.logging.info("Error performing action on add company name field")
+
+        if software_package is None and label_software_package is None:
+            try:
+                ActionChains(driver).click(add_field).send_keys_to_element(
+                    add_field, add_software_package
+                ).send_keys(Keys.ENTER).perform()
+                al.logging.info("Add field clicked")
+
+                add_button = driver.find_element_by_xpath(f"//*[text()='Add']")
+                al.logging.info("Add button found")
+
+                add_button.click()
+                al.logging.info("Add button clicked")
+
+            except:
+                al.logging.info("Error performing action on add software package field")
 
         if empty_field is not None:
             al.logging.info("Empty field found")
