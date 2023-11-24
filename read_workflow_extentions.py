@@ -4,6 +4,7 @@ from datetime import datetime
 
 from dotenv import load_dotenv
 from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.firefox import GeckoDriverManager
 
 import aroca_logger as al
 from selenium import webdriver
@@ -24,6 +25,7 @@ al.aroca_logger()
 
 # Set up the webdriver
 chrome = os.getenv("CHROME_DRIVER_PATH")
+# driver = webdriver.Firefox(executable_path=GeckoDriverManager().install())
 driver = webdriver.Chrome(ChromeDriverManager().install())
 
 
@@ -200,9 +202,9 @@ def process_post_functions_andconditions(rows_to_process):
         al.logging.info("Getting issue summary")
 
         time.sleep(1)
-        empty_field = (
-            add_field
-        ) = summary_field = reporter_field = transition_comment_field = None
+        company_name = (
+            empty_field
+        ) = add_field = summary_field = reporter_field = transition_comment_field = None
 
         try:
             summary_field = driver.find_element_by_xpath(
@@ -240,6 +242,14 @@ def process_post_functions_andconditions(rows_to_process):
         except:
             al.logging.info("Empty field-reference not found")
 
+        try:
+            company_name = driver.find_element_by_xpath(
+                "//label[span[text()='Company name:']]"
+            )
+            al.logging.info("Company name field found")
+        except:
+            al.logging.info("Company name field not found")
+
         time.sleep(1)
 
         if summary_field is not None:
@@ -270,21 +280,21 @@ def process_post_functions_andconditions(rows_to_process):
             except:
                 al.logging.info("Error performing action on transition comment field")
 
-        if add_field is not None:
+        if company_name is None:
             try:
                 ActionChains(driver).click(add_field).send_keys_to_element(
                     add_field, field_to_add
                 ).send_keys(Keys.ENTER).perform()
-            except:
-                al.logging.info("Error performing action on add company name field")
+                al.logging.info("Add field clicked")
 
-            try:
                 add_button = driver.find_element_by_xpath(f"//*[text()='Add']")
                 al.logging.info("Add button found")
-                # send enter key
+
                 add_button.click()
+                al.logging.info("Add button clicked")
+
             except:
-                al.logging.info("Add button not found")
+                al.logging.info("Error performing action on add company name field")
 
         if empty_field is not None:
             al.logging.info("Empty field found")
@@ -308,7 +318,6 @@ def process_post_functions_andconditions(rows_to_process):
             al.logging.info("Save button not found")
 
             al.logging.info("Waiting for post functions to load")
-
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located(
                 (
@@ -323,7 +332,13 @@ def process_post_functions_andconditions(rows_to_process):
 
 
 def main():
-    pass
+    navigate_to_page()
+    select_workflow()
+    expand_fucntions_and_conditions()
+    rows_to_process = driver.find_elements_by_xpath(
+        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']//div[@role='row']"
+    )
+    process_post_functions_andconditions(rows_to_process)
 
 
 if __name__ == "__main__":
