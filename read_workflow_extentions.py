@@ -169,7 +169,7 @@ def expand_fucntions_and_conditions():
 
 def process_post_functions_andconditions(rows_to_process):
     for row in rows_to_process:
-        al.logging.info(f"Processing row{row.text.splitlines()[0]}")
+        # al.logging.info(f"Processing row{row.text.splitlines()[0]}")
 
         row.click()
         al.logging.info("Row clicked")
@@ -178,11 +178,8 @@ def process_post_functions_andconditions(rows_to_process):
         edit_button = driver.find_element_by_xpath(f"//*[text()='Edit']")
         al.logging.info("Edit button found")
         edit_button.click()
-        al.logging.info("Switching iframe")
-        # WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
-        al.logging.info("Creating html file")
 
-        body = driver.find_element_by_xpath("//body[@class='aui-page-hybrid']")
+        al.logging.info("Switching to default content")
 
         driver.switch_to.default_content()
 
@@ -318,14 +315,13 @@ def process_post_functions_andconditions(rows_to_process):
             al.logging.info("Save button not found")
 
             al.logging.info("Waiting for post functions to load")
-        WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located(
-                (
-                    By.XPATH,
-                    "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']",
-                )
-            )
-        )
+
+        driver.switch_to.default_content()
+        WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
+
+        raw_html = driver.page_source
+        with open(f"output{now}.html", "w", encoding="utf-8") as f:
+            f.write(raw_html)
         al.logging.info("Post functions loaded")
 
         time.sleep(1)
@@ -335,11 +331,6 @@ def main():
     navigate_to_page()
     select_workflow()
     rows_to_process = expand_fucntions_and_conditions()
-    """
-    rows_to_process = driver.find_elements_by_xpath(
-        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']//div[@role='row']"
-    )
-    """
     process_post_functions_andconditions(rows_to_process)
 
 
