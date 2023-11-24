@@ -168,16 +168,21 @@ def expand_fucntions_and_conditions():
 
 
 def process_post_functions_andconditions(rows_to_process):
-    for row in rows_to_process:
-        # al.logging.info(f"Processing row{row.text.splitlines()[0]}")
+    for i in range(len(rows_to_process)):
+        # Re-find the "Edit" buttons
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, ".//button/span[normalize-space(text())='Edit']")
+            )
+        )
+        edit_buttons = driver.find_elements_by_xpath(
+            ".//button/span[normalize-space(text())='Edit']"
+        )
 
-        row.click()
-        al.logging.info("Row clicked")
+        # Click the i-th "Edit" button
+        edit_buttons[i].click()
         time.sleep(1)
-        al.logging.info("Waiting for edit button")
-        edit_button = driver.find_element_by_xpath(f"//*[text()='Edit']")
-        al.logging.info("Edit button found")
-        edit_button.click()
+        time.sleep(1)
 
         al.logging.info("Switching to default content")
 
@@ -322,6 +327,11 @@ def process_post_functions_andconditions(rows_to_process):
         raw_html = driver.page_source
         with open(f"output{now}.html", "w", encoding="utf-8") as f:
             f.write(raw_html)
+
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, "//div[@role='row']"))
+        )
+
         al.logging.info("Post functions loaded")
 
         time.sleep(1)
