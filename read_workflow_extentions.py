@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from datetime import datetime
@@ -447,17 +448,16 @@ def process_post_functions_andconditions(rows_to_process):
 
 
 def main():
-    navigate_to_page()
-    workflows = [
-        "BOS: JSD Workflow",
-        "FR_COMMERCE_DEVIS",
-        # "FR_CT_Update",
-        "FR_IV_Commande",
-    ]
-    for workflow in workflows:
-        print(workflow)
+    with open("config.json") as f:
+        workflows = json.load(f)
+        workflows = workflows["workflows"]
 
-        select_workflow(workflow)
+    navigate_to_page()
+
+    for workflow in workflows:
+        workflow_name = workflow["name"]
+
+        select_workflow(workflow_name)
         rows_to_process = expand_fucntions_and_conditions()
         process_post_functions_andconditions(rows_to_process)
 
