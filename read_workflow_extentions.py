@@ -141,7 +141,11 @@ def select_workflow(workflow):
 
 def expand_fucntions_and_conditions():
     # Open post functions or conditions
-
+    WebDriverWait(driver, 10).until(
+        EC.visibility_of_element_located(
+            (By.XPATH, "/html/body/section/div[1]/div/div[2]/div[2]/div/div[2]/div")
+        )
+    )
     try:
         expand_post_functions = driver.find_element_by_xpath(
             "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
@@ -165,24 +169,26 @@ def expand_fucntions_and_conditions():
     except:
         al.logging.info("No post functions found")
 
-    row_group = driver.find_element_by_xpath(
-        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']"
-    )
+    try:
+        if expand_conditions.is_displayed():
+            expand_conditions.click()
+            al.logging.info("Conditions expanded")
+
+    except:
+        al.logging.info("No conditions found")
+
     al.logging.info("Counting post functions")
-    rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
+    rows_to_process = driver.find_elements_by_xpath(
+        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']//div[@role='row']"
+    )
 
     al.logging.info(f"Found {len(rows_to_process)} post functions")
-
-    buttons = driver.find_elements_by_xpath(
-        ".//button/span[normalize-space(text())='Edit']"
-    )
-    al.logging.info(f"Found {len(buttons)} edit buttons")
 
     return rows_to_process
 
 
-def process_post_functions_andconditions(rows_to_process):
-    rows = len(rows_to_process) / 2
+def process_post_functions_and_conditions(rows_to_process):
+    rows = len(rows_to_process)
     rows = int(rows)
     for i in range(rows):
         # Re-find the "Edit" buttons
@@ -198,8 +204,6 @@ def process_post_functions_andconditions(rows_to_process):
 
         # Click the i-th "Edit" button
         edit_buttons[i].click()
-        time.sleep(1)
-        time.sleep(1)
 
         al.logging.info("Switching to default content")
 
@@ -212,22 +216,29 @@ def process_post_functions_andconditions(rows_to_process):
         )
 
         WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(1))
-        time.sleep(3)
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located(
+                (By.XPATH, "//*[@id='content']/div/div[1]/p")
+            )
+        )
         try:
             post_function_id = driver.find_element_by_xpath(
                 "//p[contains(text(), 'Post-function ID:')]"
             )
+            al.logging.info(f"Processing {post_function_id.text}")
         except:
             post_function_id = driver.find_element_by_xpath(
                 "//*[@id='content']/div/div[1]/p"
             )
-        al.logging.info(f"Processing {post_function_id.text}")
+            al.logging.info(f"Processing {post_function_id.text}")
+        """
         try:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
             )
         except:
             al.logging.info("Summary field not found")
+        """
 
         al.logging.info("Config loaded")
 
@@ -243,6 +254,21 @@ def process_post_functions_andconditions(rows_to_process):
         ) = (
             empty_field
         ) = add_field = summary_field = reporter_field = transition_comment_field = None
+
+        groovy_expressions = config["groovy_expression"]
+
+        for expression in groovy_expressions:
+            groovy = expression["xpath"]
+            nunjuck = expression["nunjuck"]
+
+            try:
+                groovy_expression = driver.find_element_by_xpath(groovy)
+                al.logging.info(f"Found {groovy}")
+            except:
+                al.logging.info(f"Could not find {groovy}")
+
+            al.logging.info(f"Checking for {groovy}")
+            al.logging.info(f"Replacing with {nunjuck}")
 
         try:
             summary_field = driver.find_element_by_xpath(
@@ -457,7 +483,7 @@ def main():
 
         select_workflow(workflow_name)
         rows_to_process = expand_fucntions_and_conditions()
-        process_post_functions_andconditions(rows_to_process)
+        process_post_functions_and_conditions(rows_to_process)
 
 
 if __name__ == "__main__":
