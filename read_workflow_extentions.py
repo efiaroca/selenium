@@ -37,7 +37,7 @@ user_email = os.getenv("CLOUD_USER")
 user_password = os.getenv("CLOUD_PASSWORD")
 post_migration_url = os.getenv("POST_MIGRATION_URL")
 i_frame_post_migration = os.getenv("I_FRAME_POST_MIGRATION")
-workflow = os.getenv("WORKFLOW")
+workflows = os.getenv("WORKFLOW")
 nunjuck_summary = os.getenv("NUNJUCK_SUMMARY")
 nunjuck_asignee = os.getenv("NUNJUCK_ASIGNEE")
 nunjuck_comments = os.getenv("NUNJUCK_COMMENTS")
@@ -109,7 +109,7 @@ def navigate_to_page():
     driver.execute_script("arguments[0].click();", extension_type)
 
 
-def select_workflow():
+def select_workflow(workflow):
     # Select workflow
 
     al.logging.info("Selecting workflow dropdown")
@@ -146,33 +146,44 @@ def select_workflow():
 def expand_fucntions_and_conditions():
     # Open post functions or conditions
 
-    al.logging.info("Opening post functions or conditions")
+    try:
+        expand_post_functions = driver.find_element_by_xpath(
+            "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
+        )
+    except:
+        al.logging.info("Post functions already expanded or not found")
 
-    expand_post_functions = driver.find_element_by_xpath(
-        "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
-    )
-    expand_conditions = driver.find_element_by_xpath(
-        "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
-    )
+    try:
+        expand_conditions = driver.find_element_by_xpath(
+            "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
+        )
+    except:
+        al.logging.info("Conditions already expanded or not found")
 
     rows_to_process = []  # Initialize rows_to_process as an empty list
+    try:
+        if expand_post_functions.is_displayed():
+            expand_post_functions.click()
+            al.logging.info("Post functions expanded")
 
-    if expand_post_functions.is_displayed():
-        expand_post_functions.click()
-        al.logging.info("Post functions expanded")
-        row_group = driver.find_element_by_xpath(
-            "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']"
-        )
-        al.logging.info("Counting post functions")
-        rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
+    except:
+        al.logging.info("No post functions found")
 
-        al.logging.info(f"Found {len(rows_to_process)} post functions")
+    row_group = driver.find_element_by_xpath(
+        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']"
+    )
+    al.logging.info("Counting post functions")
+    rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
+
+    al.logging.info(f"Found {len(rows_to_process)} post functions")
 
     return rows_to_process
 
 
 def process_post_functions_andconditions(rows_to_process):
-    for i in range(len(rows_to_process)):
+    rows = len(rows_to_process) / 2
+    rows = int(rows)
+    for i in range(rows):
         # Re-find the "Edit" buttons
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located(
@@ -200,15 +211,22 @@ def process_post_functions_andconditions(rows_to_process):
         )
 
         WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(1))
-
-        post_function_id = driver.find_element_by_xpath(
-            "//p[contains(text(), 'Post-function ID:')]"
-        )
-        al.logging.info(f"Post function ID: {post_function_id.text}")
-
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
-        )
+        time.sleep(3)
+        try:
+            post_function_id = driver.find_element_by_xpath(
+                "//p[contains(text(), 'Post-function ID:')]"
+            )
+        except:
+            post_function_id = driver.find_element_by_xpath(
+                "//*[@id='content']/div/div[1]/p"
+            )
+        al.logging.info(f"Processing {post_function_id.text}")
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
+            )
+        except:
+            al.logging.info("Summary field not found")
 
         al.logging.info("Config loaded")
 
@@ -364,15 +382,15 @@ def process_post_functions_andconditions(rows_to_process):
             except:
                 al.logging.info("Error performing action on add company name field")
 
-        if software_package is None and label_software_package is None:
+        if software_package is not None and label_software_package is None:
             try:
                 ActionChains(driver).click(add_field).send_keys_to_element(
                     add_field, add_software_package
                 ).send_keys(Keys.ENTER).perform()
-                al.logging.info("Add field clicked")
+                al.logging.info("Software package clicked")
 
                 add_button = driver.find_element_by_xpath(f"//*[text()='Add']")
-                al.logging.info("Add button found")
+                al.logging.info("Software package found")
 
                 add_button.click()
                 al.logging.info("Add button clicked")
@@ -391,16 +409,25 @@ def process_post_functions_andconditions(rows_to_process):
 
         time.sleep(2)
 
-        try:
-            save_button = driver.find_element_by_xpath(
-                "//button[normalize-space(text())='Save']"
-            )
-            al.logging.info("Save button found")
-            save_button.click()
-            al.logging.info("Save button clicked")
-        except:
-            al.logging.info("Save button not found")
+        xpaths = [
+            "//button/span[normalize-space(text())='Save']",
+            "//button[@data-button-name='saveOnly' and normalize-space(text())='Save']",
+        ]
 
+        for xpath in xpaths:
+            try:
+                save_button = driver.find_element_by_xpath(xpath)
+                al.logging.info("Save button found")
+                save_button.click()
+                al.logging.info("Save button clicked")
+                break  # If the button is found and clicked, exit the loop
+            except Exception as e:
+                al.logging.info(
+                    f"Failed to find or click the save button with xpath {xpath}: {e}"
+                )
+
+        if not save_button:
+            al.logging.info("Save button not found")
             al.logging.info("Waiting for post functions to load")
 
         driver.switch_to.default_content()
@@ -421,9 +448,18 @@ def process_post_functions_andconditions(rows_to_process):
 
 def main():
     navigate_to_page()
-    select_workflow()
-    rows_to_process = expand_fucntions_and_conditions()
-    process_post_functions_andconditions(rows_to_process)
+    workflows = [
+        "BOS: JSD Workflow",
+        "FR_COMMERCE_DEVIS",
+        # "FR_CT_Update",
+        "FR_IV_Commande",
+    ]
+    for workflow in workflows:
+        print(workflow)
+
+        select_workflow(workflow)
+        rows_to_process = expand_fucntions_and_conditions()
+        process_post_functions_andconditions(rows_to_process)
 
 
 if __name__ == "__main__":
