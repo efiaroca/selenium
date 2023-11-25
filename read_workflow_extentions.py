@@ -24,9 +24,9 @@ al.aroca_logger()
 
 
 # Set up the webdriver
-chrome = os.getenv("CHROME_DRIVER_PATH")
-# driver = webdriver.Firefox(executable_path=GeckoDriverManager().install())
-driver = webdriver.Chrome(ChromeDriverManager().install())
+# chrome = os.getenv("CHROME_DRIVER_PATH")
+driver = webdriver.Firefox(executable_path=GeckoDriverManager().install())
+# driver = webdriver.Chrome(ChromeDriverManager().install())
 
 
 # driver = webdriver.Chrome(chrome)
