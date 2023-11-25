@@ -37,11 +37,15 @@ user_email = os.getenv("CLOUD_USER")
 user_password = os.getenv("CLOUD_PASSWORD")
 post_migration_url = os.getenv("POST_MIGRATION_URL")
 i_frame_post_migration = os.getenv("I_FRAME_POST_MIGRATION")
-workflow = os.getenv("WORKFLOW")
+workflows = os.getenv("WORKFLOW")
 nunjuck_summary = os.getenv("NUNJUCK_SUMMARY")
 nunjuck_asignee = os.getenv("NUNJUCK_ASIGNEE")
 nunjuck_comments = os.getenv("NUNJUCK_COMMENTS")
-field_to_add = os.getenv("FIELD_TO_ADD")
+nunjuck_access_control = os.getenv("NUNJUCK_ACCESS_CONTROL")
+add_company_name = os.getenv("ADD_COMPANY_NAME")
+add_software_package = os.getenv("ADD_SOFTWARE_PACKAGE")
+add_software_package_version = os.getenv("ADD_SOFTWARE_PACKAGE_VERSION")
+
 
 # driver = webdriver.Chrome(options=options)
 
@@ -105,7 +109,7 @@ def navigate_to_page():
     driver.execute_script("arguments[0].click();", extension_type)
 
 
-def select_workflow():
+def select_workflow(workflow):
     # Select workflow
 
     al.logging.info("Selecting workflow dropdown")
@@ -142,39 +146,51 @@ def select_workflow():
 def expand_fucntions_and_conditions():
     # Open post functions or conditions
 
-    al.logging.info("Opening post functions or conditions")
+    try:
+        expand_post_functions = driver.find_element_by_xpath(
+            "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
+        )
+    except:
+        al.logging.info("Post functions already expanded or not found")
 
-    expand_post_functions = driver.find_element_by_xpath(
-        "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
-    )
-    expand_conditions = driver.find_element_by_xpath(
-        "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
-    )
+    try:
+        expand_conditions = driver.find_element_by_xpath(
+            "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
+        )
+    except:
+        al.logging.info("Conditions already expanded or not found")
 
     rows_to_process = []  # Initialize rows_to_process as an empty list
+    try:
+        if expand_post_functions.is_displayed():
+            expand_post_functions.click()
+            al.logging.info("Post functions expanded")
 
-    if expand_post_functions.is_displayed():
-        expand_post_functions.click()
-        al.logging.info("Post functions expanded")
-        row_group = driver.find_element_by_xpath(
-            "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']"
-        )
-        al.logging.info("Counting post functions")
-        rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
+    except:
+        al.logging.info("No post functions found")
 
-        al.logging.info(f"Found {len(rows_to_process)} post functions")
+    row_group = driver.find_element_by_xpath(
+        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']"
+    )
+    al.logging.info("Counting post functions")
+    rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
+
+    al.logging.info(f"Found {len(rows_to_process)} post functions")
 
     return rows_to_process
 
 
 def process_post_functions_andconditions(rows_to_process):
-    for i in range(len(rows_to_process)):
+    rows = len(rows_to_process) / 2
+    rows = int(rows)
+    for i in range(rows):
         # Re-find the "Edit" buttons
         WebDriverWait(driver, 10).until(
             EC.visibility_of_element_located(
                 (By.XPATH, ".//button/span[normalize-space(text())='Edit']")
             )
         )
+
         edit_buttons = driver.find_elements_by_xpath(
             ".//button/span[normalize-space(text())='Edit']"
         )
@@ -193,18 +209,37 @@ def process_post_functions_andconditions(rows_to_process):
                 (By.XPATH, "//div[@class='aui-dialog2-content']")
             )
         )
-        WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(1))
 
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
-        )
+        WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(1))
+        time.sleep(3)
+        try:
+            post_function_id = driver.find_element_by_xpath(
+                "//p[contains(text(), 'Post-function ID:')]"
+            )
+        except:
+            post_function_id = driver.find_element_by_xpath(
+                "//*[@id='content']/div/div[1]/p"
+            )
+        al.logging.info(f"Processing {post_function_id.text}")
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
+            )
+        except:
+            al.logging.info("Summary field not found")
 
         al.logging.info("Config loaded")
 
         al.logging.info("Getting issue summary")
 
         time.sleep(1)
-        company_name = (
+        label_software_package = (
+            software_package
+        ) = (
+            access_control_update
+        ) = (
+            company_name
+        ) = (
             empty_field
         ) = add_field = summary_field = reporter_field = transition_comment_field = None
 
@@ -252,6 +287,45 @@ def process_post_functions_andconditions(rows_to_process):
         except:
             al.logging.info("Company name field not found")
 
+        try:
+            access_control_update = driver.find_element_by_xpath(
+                "//label[span[text()='Access control update:']]"
+            )
+            al.logging.info("Access Control Update found")
+        except:
+            al.logging.info("Access Control Update not found")
+
+        try:
+            label_software_package = driver.find_element_by_xpath(
+                "//label[span[text()='Software package:']]"
+            )
+            al.logging.info("Software Package found")
+        except:
+            al.logging.info("Software Package not found")
+
+        try:
+            software_package = driver.find_element_by_xpath(
+                "//span[@class='css-u1shhv']/i[text()='customfield_17588']"
+            )
+            al.logging.info("Software Package custom field missing")
+        except:
+            al.logging.info("Software Package not found")
+
+        try:
+            software_package_version = driver.find_element_by_xpath(
+                "//span[@class='css-u1shhv']/i[text()='customfield_17643']"
+            )
+            al.logging.info("Software Package Version custom field missing")
+        except:
+            al.logging.info("Software Package Version not found")
+
+        try:
+            label_software_package_version = driver.find_element_by_xpath(
+                "//label[span[text()='Software package version(s):']]"
+            )
+        except:
+            al.logging.info("Software Package Version not found")
+
         time.sleep(1)
 
         if summary_field is not None:
@@ -282,10 +356,20 @@ def process_post_functions_andconditions(rows_to_process):
             except:
                 al.logging.info("Error performing action on transition comment field")
 
+        if access_control_update is not None:
+            try:
+                ActionChains(driver).double_click(
+                    access_control_update
+                ).send_keys_to_element(
+                    access_control_update, nunjuck_access_control
+                ).perform()
+            except:
+                al.logging.info("Error performing action on access control update")
+
         if company_name is None:
             try:
                 ActionChains(driver).click(add_field).send_keys_to_element(
-                    add_field, field_to_add
+                    add_field, add_company_name
                 ).send_keys(Keys.ENTER).perform()
                 al.logging.info("Add field clicked")
 
@@ -298,6 +382,22 @@ def process_post_functions_andconditions(rows_to_process):
             except:
                 al.logging.info("Error performing action on add company name field")
 
+        if software_package is not None and label_software_package is None:
+            try:
+                ActionChains(driver).click(add_field).send_keys_to_element(
+                    add_field, add_software_package
+                ).send_keys(Keys.ENTER).perform()
+                al.logging.info("Software package clicked")
+
+                add_button = driver.find_element_by_xpath(f"//*[text()='Add']")
+                al.logging.info("Software package found")
+
+                add_button.click()
+                al.logging.info("Add button clicked")
+
+            except:
+                al.logging.info("Error performing action on add software package field")
+
         if empty_field is not None:
             al.logging.info("Empty field found")
 
@@ -309,16 +409,25 @@ def process_post_functions_andconditions(rows_to_process):
 
         time.sleep(2)
 
-        try:
-            save_button = driver.find_element_by_xpath(
-                "//button[normalize-space(text())='Save']"
-            )
-            al.logging.info("Save button found")
-            save_button.click()
-            al.logging.info("Save button clicked")
-        except:
-            al.logging.info("Save button not found")
+        xpaths = [
+            "//button/span[normalize-space(text())='Save']",
+            "//button[@data-button-name='saveOnly' and normalize-space(text())='Save']",
+        ]
 
+        for xpath in xpaths:
+            try:
+                save_button = driver.find_element_by_xpath(xpath)
+                al.logging.info("Save button found")
+                save_button.click()
+                al.logging.info("Save button clicked")
+                break  # If the button is found and clicked, exit the loop
+            except Exception as e:
+                al.logging.info(
+                    f"Failed to find or click the save button with xpath {xpath}: {e}"
+                )
+
+        if not save_button:
+            al.logging.info("Save button not found")
             al.logging.info("Waiting for post functions to load")
 
         driver.switch_to.default_content()
@@ -339,9 +448,18 @@ def process_post_functions_andconditions(rows_to_process):
 
 def main():
     navigate_to_page()
-    select_workflow()
-    rows_to_process = expand_fucntions_and_conditions()
-    process_post_functions_andconditions(rows_to_process)
+    workflows = [
+        "BOS: JSD Workflow",
+        "FR_COMMERCE_DEVIS",
+        # "FR_CT_Update",
+        "FR_IV_Commande",
+    ]
+    for workflow in workflows:
+        print(workflow)
+
+        select_workflow(workflow)
+        rows_to_process = expand_fucntions_and_conditions()
+        process_post_functions_andconditions(rows_to_process)
 
 
 if __name__ == "__main__":
