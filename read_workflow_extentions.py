@@ -19,6 +19,10 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 # Get the current time
 now = datetime.now()
 
+# Read the config file
+with open("config.json") as f:
+    config = json.load(f)
+
 # Convert the current time to a string
 current_time = now.strftime("%H:%M:%S")
 al.aroca_logger()
@@ -54,9 +58,6 @@ add_software_package_version = os.getenv("ADD_SOFTWARE_PACKAGE_VERSION")
 def navigate_to_page():
     # Navigate to the webpage
     driver.get(cloud_url)
-    title = driver.title
-    options = Options()
-    options.add_argument("--auto-open-devtools-for-tabs")
     # Start the logger
     al.logging.info("Starting the logger")
 
@@ -89,13 +90,12 @@ def navigate_to_page():
     driver.get(post_migration_url)
 
     # Switch to iframe for app
-    al.logging.info("Switching to the iframe")
+    al.logging.info("Switching to iframe")
 
     WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
 
     al.logging.info("Working in iframe")
 
-    # driver.switch_to.frame(driver.find_element_by_xpath(i_frame_post_migration))
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located(
             (By.XPATH, '//span[@class="css-178ag6o" and text()="Extension type"]')
@@ -115,8 +115,6 @@ def select_workflow(workflow):
 
     al.logging.info("Selecting workflow dropdown")
 
-    al.logging.info("Selecting workflow")
-
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.ID, "migratedWorkflow"))
     )
@@ -130,9 +128,6 @@ def select_workflow(workflow):
         EC.visibility_of_element_located((By.CLASS_NAME, "css-4mp3pp-menu"))
     )
 
-    workflow_dropdown_search = driver.find_element_by_class_name("css-4mp3pp-menu")
-    workflow_dropdown_search_html = workflow_dropdown_search.get_attribute("outerHTML")
-
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.XPATH, f"//*[text()='{workflow}']"))
     )
@@ -141,7 +136,7 @@ def select_workflow(workflow):
 
     worklfow_name.click()
 
-    al.logging.info("Workflow selected")
+    al.logging.info(f"{workflow} selected")
 
 
 def expand_fucntions_and_conditions():
@@ -177,6 +172,11 @@ def expand_fucntions_and_conditions():
     rows_to_process = row_group.find_elements_by_xpath("//div[@role='row']")
 
     al.logging.info(f"Found {len(rows_to_process)} post functions")
+
+    buttons = driver.find_elements_by_xpath(
+        ".//button/span[normalize-space(text())='Edit']"
+    )
+    al.logging.info(f"Found {len(buttons)} edit buttons")
 
     return rows_to_process
 
@@ -448,9 +448,7 @@ def process_post_functions_andconditions(rows_to_process):
 
 
 def main():
-    with open("config.json") as f:
-        workflows = json.load(f)
-        workflows = workflows["workflows"]
+    workflows = config["workflows"]
 
     navigate_to_page()
 
