@@ -8,11 +8,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 from webdriver_manager.firefox import GeckoDriverManager
 
 import aroca_logger as al
+import config as config
 from selenium import webdriver
 from selenium.webdriver import ActionChains
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.firefox_binary import FirefoxBinary
+from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 
@@ -20,8 +23,17 @@ from selenium.webdriver.support.ui import Select, WebDriverWait
 now = datetime.now()
 
 # Read the config file
-with open("config.json") as f:
-    config = json.load(f)
+workflows = config.workflows["workflows"]
+groovy_expressions = config.groovy_expressions
+conditions = config.conditions
+field_labels = config.field_labels
+buttons = config.buttons
+
+save_only_buttons = [
+    buttons["Save only"]["xpath"],
+    buttons["Save issue"]["xpath"],
+]
+
 
 # Convert the current time to a string
 current_time = now.strftime("%H:%M:%S")
@@ -29,7 +41,8 @@ al.aroca_logger()
 
 # Set up the webdriver
 # chrome = os.getenv("CHROME_DRIVER_PATH")
-driver = webdriver.Firefox(executable_path=GeckoDriverManager().install())
+
+driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()))
 # driver = webdriver.Chrome(ChromeDriverManager().install())
 
 # Get the environment variables
@@ -39,14 +52,6 @@ user_email = os.getenv("CLOUD_USER")
 user_password = os.getenv("CLOUD_PASSWORD")
 post_migration_url = os.getenv("POST_MIGRATION_URL")
 i_frame_post_migration = os.getenv("I_FRAME_POST_MIGRATION")
-workflows = os.getenv("WORKFLOW")
-nunjuck_summary = os.getenv("NUNJUCK_SUMMARY")
-nunjuck_asignee = os.getenv("NUNJUCK_ASIGNEE")
-nunjuck_comments = os.getenv("NUNJUCK_COMMENTS")
-nunjuck_access_control = os.getenv("NUNJUCK_ACCESS_CONTROL")
-add_company_name = os.getenv("ADD_COMPANY_NAME")
-add_software_package = os.getenv("ADD_SOFTWARE_PACKAGE")
-add_software_package_version = os.getenv("ADD_SOFTWARE_PACKAGE_VERSION")
 
 
 # driver = webdriver.Chrome(options=options)
@@ -65,17 +70,17 @@ def navigate_to_page():
         EC.visibility_of_element_located((By.ID, "username"))
     )
 
-    driver.find_element_by_id("username").send_keys(user_email)
+    driver.find_element(By.ID, "username").send_keys(user_email)
 
-    continue_button = driver.find_element_by_id("login-submit")
+    continue_button = driver.find_element(By.ID, "login-submit")
     continue_button.click()
 
     WebDriverWait(driver, 15).until(
         EC.visibility_of_element_located((By.ID, "password"))
     )
-    driver.find_element_by_id("password").send_keys(user_password)
+    driver.find_element(By.ID, "password").send_keys(user_password)
 
-    login_button = driver.find_element_by_id("login-submit")
+    login_button = driver.find_element(By.ID, "login-submit")
     login_button.click()
 
     # wait for the page to load and move on to next url
@@ -99,8 +104,8 @@ def navigate_to_page():
         )
     )
     # Find the button
-    extension_type = driver.find_element_by_xpath(
-        '//span[@class="css-178ag6o" and text()="Extension type"]'
+    extension_type = driver.find_element(
+        By.XPATH, '//span[@class="css-178ag6o" and text()="Extension type"]'
     )
 
     # Use JavaScript to click the button
@@ -115,7 +120,7 @@ def select_workflow(workflow):
     WebDriverWait(driver, 10).until(
         EC.visibility_of_element_located((By.ID, "migratedWorkflow"))
     )
-    workflow_dropdown = driver.find_element_by_id("migratedWorkflow")
+    workflow_dropdown = driver.find_element(By.ID, "migratedWorkflow")
 
     workflow_dropdown.click()
 
@@ -129,7 +134,7 @@ def select_workflow(workflow):
         EC.visibility_of_element_located((By.XPATH, f"//*[text()='{workflow}']"))
     )
 
-    worklfow_name = driver.find_element_by_xpath(f"//*[text()='{workflow}']")
+    worklfow_name = driver.find_element(By.XPATH, f"//*[text()='{workflow}']")
 
     worklfow_name.click()
 
@@ -144,15 +149,17 @@ def expand_fucntions_and_conditions():
         )
     )
     try:
-        expand_post_functions = driver.find_element_by_xpath(
-            "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']"
+        expand_post_functions = driver.find_element(
+            By.XPATH,
+            "//span[@role='img' and @aria-label='Expand row postFunction' and @class='css-1afrefi']",
         )
     except:
         al.logging.info("Post functions already expanded or not found")
 
     try:
-        expand_conditions = driver.find_element_by_xpath(
-            "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']"
+        expand_conditions = driver.find_element(
+            By.XPATH,
+            "//span[@role='img' and @aria-label='Expand row condition' and @class='css-1afrefi']",
         )
     except:
         al.logging.info("Conditions already expanded or not found")
@@ -175,8 +182,9 @@ def expand_fucntions_and_conditions():
         al.logging.info("No conditions found")
 
     al.logging.info("Counting post functions")
-    rows_to_process = driver.find_elements_by_xpath(
-        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']//div[@role='row']"
+    rows_to_process = driver.find_elements(
+        By.XPATH,
+        "//div[@id='tabletreeitem-postFunction']//div[@role='rowgroup']//div[@role='row']",
     )
 
     al.logging.info(f"Found {len(rows_to_process)} post functions")
@@ -184,7 +192,7 @@ def expand_fucntions_and_conditions():
     return rows_to_process
 
 
-def process_post_functions_and_conditions(rows_to_process):
+def process_post_functions_and_conditions(rows_to_process, workflow_name):
     rows = len(rows_to_process)
     rows = int(rows)
     for i in range(rows):
@@ -195,8 +203,8 @@ def process_post_functions_and_conditions(rows_to_process):
             )
         )
 
-        edit_buttons = driver.find_elements_by_xpath(
-            ".//button/span[normalize-space(text())='Edit']"
+        edit_buttons = driver.find_elements(
+            By.XPATH, ".//button/span[normalize-space(text())='Edit']"
         )
 
         # Click the i-th "Edit" button
@@ -219,23 +227,15 @@ def process_post_functions_and_conditions(rows_to_process):
             )
         )
         try:
-            post_function_id = driver.find_element_by_xpath(
-                "//p[contains(text(), 'Post-function ID:')]"
+            post_function_id = driver.find_element(
+                By.XPATH, "//p[contains(text(), 'Post-function ID:')]"
             )
             al.logging.info(f"Processing {post_function_id.text}")
         except:
-            post_function_id = driver.find_element_by_xpath(
-                "//*[@id='content']/div/div[1]/p"
+            post_function_id = driver.find_element(
+                By.XPATH, "//*[@id='content']/div/div[1]/p"
             )
             al.logging.info(f"Processing {post_function_id.text}")
-        """
-        try:
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "//textarea[@id='summary']"))
-            )
-        except:
-            al.logging.info("Summary field not found")
-        """
 
         al.logging.info("Config loaded")
 
@@ -252,106 +252,78 @@ def process_post_functions_and_conditions(rows_to_process):
             empty_field
         ) = add_field = summary_field = reporter_field = transition_comment_field = None
 
-        groovy_expressions = config["groovy_expressions"]
-        workflows = config["workflows"]
         for expression in groovy_expressions:
-            groovy = expression["xpath"]
-            nunjuck = expression["nunjuck"]
+            groovy = groovy_expressions[expression]["xpath"]
+            nunjuck = groovy_expressions[expression]["nunjuck"]
+            al.logging.info(f"Performed action on {groovy} for {workflow_name}")
 
             try:
-                groovy_expression = driver.find_element_by_xpath(groovy)
+                driver.find_element(By.XPATH, groovy)
                 al.logging.info(f"Found {groovy}")
                 ActionChains(driver).double_click(groovy).send_keys_to_element(
                     groovy, nunjuck
                 ).perform()
-                al.logging.info(f"Performed action on {groovy}")
+                al.logging.info(f"Performed action on {groovy} for {workflow_name}")
             except:
                 al.logging.info(f"Could not find {groovy}")
 
                 al.logging.info(f"Error performing action on {groovy}")
 
-            al.logging.info(f"Checking for {groovy} in workflow")
-            al.logging.info(f"Replacing with {nunjuck}")
-
         try:
-            summary_field = driver.find_element_by_xpath(
-                "//span[text()='<%=issue.get(\"summary\")%>']"
-            )
-            al.logging.info("Summary field found")
-        except:
-            al.logging.info("Summary field not found")
-
-        try:
-            reporter_field = driver.find_element_by_xpath(
-                "//span[text()='issue.get(\"assignee\")']"
-            )
-            al.logging.info("Reporter field found")
-        except:
-            al.logging.info("Reporter field not found")
-
-        try:
-            transition_comment_field = driver.find_element_by_xpath(
-                "//span[text()='${transientVars.comment}']"
-            )
-            al.logging.info("Transition comment field found")
-        except:
-            al.logging.info("Transition comment field not found")
-
-        try:
-            add_field = driver.find_element_by_xpath("//*[@id='s2id_fields']")
+            add_field = driver.find_element(By.XPATH, "//*[@id='s2id_fields']")
             al.logging.info("Add field found")
         except:
             al.logging.info("Add field not found")
 
         try:
-            empty_field = driver.find_element_by_xpath("//label[span[text()=':']]")
+            empty_field = driver.find_element(By.XPATH, "//label[span[text()=':']]")
             al.logging.info("Empty field-reference found")
         except:
             al.logging.info("Empty field-reference not found")
 
         try:
-            company_name = driver.find_element_by_xpath(
-                "//label[span[text()='Company name:']]"
+            company_name = driver.find_element(
+                By.XPATH, "//label[span[text()='Company name:']]"
             )
             al.logging.info("Company name field found")
         except:
             al.logging.info("Company name field not found")
 
         try:
-            access_control_update = driver.find_element_by_xpath(
-                "//label[span[text()='Access control update:']]"
+            access_control_update = driver.find_element(
+                By.XPATH, "//label[span[text()='Access control update:']]"
             )
             al.logging.info("Access Control Update found")
         except:
             al.logging.info("Access Control Update not found")
 
         try:
-            label_software_package = driver.find_element_by_xpath(
-                "//label[span[text()='Software package:']]"
+            label_software_package = driver.find_element(
+                By.XPATH, "//label[span[text()='Software package:']]"
             )
             al.logging.info("Software Package found")
         except:
             al.logging.info("Software Package not found")
 
         try:
-            software_package = driver.find_element_by_xpath(
-                "//span[@class='css-u1shhv']/i[text()='customfield_17588']"
+            software_package = driver.find_element(
+                By.XPATH, "//span[@class='css-u1shhv']/i[text()='customfield_17588']"
             )
             al.logging.info("Software Package custom field missing")
         except:
             al.logging.info("Software Package not found")
 
         try:
-            software_package_version = driver.find_element_by_xpath(
-                "//span[@class='css-u1shhv']/i[text()='customfield_17643']"
+            software_package_version = driver.find_element(
+                By.XPATH, "//span[@class='css-u1shhv']/i[text()='customfield_17643']"
             )
             al.logging.info("Software Package Version custom field missing")
         except:
             al.logging.info("Software Package Version not found")
 
         try:
-            label_software_package_version = driver.find_element_by_xpath(
-                "//label[span[text()='Software package version(s):']]"
+            label_software_package_version = driver.find_element(
+                By.XPATH, "//label[span[text()='Software package version(s):']]"
             )
         except:
             al.logging.info("Software Package Version not found")
@@ -403,7 +375,7 @@ def process_post_functions_and_conditions(rows_to_process):
                 ).send_keys(Keys.ENTER).perform()
                 al.logging.info("Add field clicked")
 
-                add_button = driver.find_element_by_xpath(f"//*[text()='Add']")
+                add_button = driver.find_element(By.XPATH, f"//*[text()='Add']")
                 al.logging.info("Add button found")
 
                 add_button.click()
@@ -419,7 +391,7 @@ def process_post_functions_and_conditions(rows_to_process):
                 ).send_keys(Keys.ENTER).perform()
                 al.logging.info("Software package clicked")
 
-                add_button = driver.find_element_by_xpath(f"//*[text()='Add']")
+                add_button = driver.find_element(By.XPATH, f"//*[text()='Add']")
                 al.logging.info("Software package found")
 
                 add_button.click()
@@ -444,16 +416,16 @@ def process_post_functions_and_conditions(rows_to_process):
             "//button[@data-button-name='saveOnly' and normalize-space(text())='Save']",
         ]
 
-        for xpath in xpaths:
+        for button in save_only_buttons:
             try:
-                save_button = driver.find_element_by_xpath(xpath)
+                save_button = driver.find_element(By.XPATH, button)
                 al.logging.info("Save button found")
                 save_button.click()
                 al.logging.info("Save button clicked")
                 break  # If the button is found and clicked, exit the loop
             except Exception as e:
                 al.logging.info(
-                    f"Failed to find or click the save button with xpath {xpath}: {e}"
+                    f"Failed to find or click the save button with xpath {button}: {e}"
                 )
 
         if not save_button:
@@ -464,7 +436,7 @@ def process_post_functions_and_conditions(rows_to_process):
         WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it(0))
 
         raw_html = driver.page_source
-        with open(f"output{now}.html", "w", encoding="utf-8") as f:
+        with open(f"logs/output{now}.html", "w", encoding="utf-8") as f:
             f.write(raw_html)
 
         WebDriverWait(driver, 10).until(
@@ -477,8 +449,6 @@ def process_post_functions_and_conditions(rows_to_process):
 
 
 def main():
-    workflows = config["workflows"]
-
     navigate_to_page()
 
     for workflow in workflows:
@@ -486,7 +456,7 @@ def main():
 
         select_workflow(workflow_name)
         rows_to_process = expand_fucntions_and_conditions()
-        process_post_functions_and_conditions(rows_to_process)
+        process_post_functions_and_conditions(rows_to_process, workflow_name)
 
 
 if __name__ == "__main__":
