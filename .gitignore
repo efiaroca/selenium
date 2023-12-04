@@ -9,3 +9,5 @@ __pycache__/*
 *.pyc
 *.pyo```
 *.html
+config.py
+config.json
